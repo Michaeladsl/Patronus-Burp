@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patronus Burp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #080c10;
+  --surface:  #0d1117;
+  --card:     #111820;
+  --border:   #1e2936;
+  --border2:  #253040;
+  --text:     #c8d6e5;
+  --muted:    #5a7080;
+  --accent:   #f0a500;
+  --accent2:  #e06c00;
+  --green:    #3fb950;
+  --red:      #f85149;
+  --blue:     #58a6ff;
+  --purple:   #bc8cff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+}
+
+/* - Scanline overlay - */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px);
+}
+
+/* - Header - */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,12,16,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  display: flex; align-items: center; gap: 24px; height: 60px;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .85rem; font-weight: 700;
+  color: var(--accent); letter-spacing: .05em;
+  text-decoration: none;
+}
+.logo-shield {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; color: #000; font-weight: 800;
+}
+.header-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .7rem; color: var(--muted);
+  background: var(--card); border: 1px solid var(--border);
+  padding: 3px 10px; border-radius: 3px;
+}
+.header-live {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--muted);
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(63,185,80,.4); }
+  50% { opacity: .7; box-shadow: 0 0 0 5px rgba(63,185,80,0); }
+}
+
+/* - Layout - */
+.container { max-width: 1300px; margin: 0 auto; padding: 40px; }
+
+/* - Stats bar - */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-bottom: 40px;
+}
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 20px 24px;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 2rem; font-weight: 800; color: var(--accent);
+  line-height: 1;
+}
+.stat-sub { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+/* - Section - */
+.section-header {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+}
+.section-title {
+  font-size: .7rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .12em;
+  font-family: 'JetBrains Mono', monospace;
+}
+.section-line { flex: 1; height: 1px; background: var(--border); }
+.section-count {
+  font-family: 'JetBrains Mono', monospace; font-size: .7rem;
+  color: var(--muted); background: var(--card);
+  border: 1px solid var(--border); padding: 2px 8px; border-radius: 3px;
+}
+
+/* - Session cards - */
+.session-grid { display: flex; flex-direction: column; gap: 10px; }
+.session-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+  transition: border-color .15s, transform .1s;
+  text-decoration: none; display: block;
+}
+.session-card:hover {
+  border-color: var(--border2); transform: translateX(3px);
+}
+.session-card-inner {
+  display: flex; align-items: center; gap: 20px; padding: 16px 20px;
+}
+.session-engagement {
+  font-size: 1rem; font-weight: 700; color: var(--text); flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+}
+.session-filename {
+  font-size: .72rem; color: var(--muted); margin-top: 3px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.session-meta {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.tag {
+  font-family: 'JetBrains Mono', monospace; font-size: .7rem;
+  padding: 3px 10px; border-radius: 3px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); white-space: nowrap;
+}
+.tag.accent { border-color: rgba(240,165,0,.3); color: var(--accent); background: rgba(240,165,0,.06); }
+.tag.green  { border-color: rgba(63,185,80,.3); color: var(--green); background: rgba(63,185,80,.06); }
+.tag.red    { border-color: rgba(248,81,73,.3); color: var(--red); background: rgba(248,81,73,.06); }
+.tag.blue   { border-color: rgba(88,166,255,.3); color: var(--blue); background: rgba(88,166,255,.06); }
+
+.session-arrow { color: var(--muted); font-size: 1.1rem; margin-left: 8px; }
+.session-time { font-family: 'JetBrains Mono', monospace; font-size: .68rem; color: var(--muted); }
+
+.delete-btn {
+  background: none; border: 1px solid transparent; border-radius: 4px;
+  color: var(--muted); cursor: pointer; padding: 4px 8px; font-size: .8rem;
+  transition: all .15s; margin-left: 8px;
+}
+.delete-btn:hover { border-color: var(--red); color: var(--red); background: rgba(248,81,73,.08); }
+
+/* - Empty state - */
+.empty {
+  text-align: center; padding: 80px 40px;
+  border: 1px dashed var(--border); border-radius: 8px;
+  background: var(--card);
+}
+.empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: .4; }
+.empty-title { font-size: 1.1rem; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+.empty-sub { font-size: .85rem; color: var(--muted); opacity: .7; line-height: 1.6; }
+.empty-code {
+  display: inline-block; margin-top: 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 8px 16px; border-radius: 4px; color: var(--accent);
+}
+
+/* - Footer - */
+footer {
+  text-align: center; padding: 32px; border-top: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace; font-size: .7rem; color: var(--muted);
+  margin-top: 60px;
+}
+
+/* - Notification toast - */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9998;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 20px;
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem; color: var(--text);
+  transform: translateY(80px); opacity: 0; transition: all .3s;
+  pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(63,185,80,.4); color: var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">
+    <div class="logo-shield">P</div>
+    PATRONUS
+  </a>
+  <span class="header-tag">Burp Edition</span>
+  <div class="header-live">
+    <div class="live-dot"></div>
+    <span id="live-label">watching sessions dir</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Sessions</div>
+      <div class="stat-value">{{ stats.total_sessions }}</div>
+      <div class="stat-sub">engagement files</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Requests</div>
+      <div class="stat-value">{{ stats.total_requests }}</div>
+      <div class="stat-sub">captured &amp; redacted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Flagged</div>
+      <div class="stat-value">{{ stats.total_flagged }}</div>
+      <div class="stat-sub">marked for review</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Engagements</div>
+      <div class="stat-value">{{ stats.engagements | length }}</div>
+      <div class="stat-sub">unique clients</div>
+    </div>
+  </div>
+
+  <!-- Sessions list -->
+  <div class="section-header">
+    <span class="section-title">Sessions</span>
+    <div class="section-line"></div>
+    <span class="section-count" id="session-count">{{ sessions | length }}</span>
+  </div>
+
+  {% if sessions %}
+  <div class="session-grid" id="session-grid">
+    {% for s in sessions %}
+    {% set summary = s.get('summary', {}) %}
+    {% set filename = s.get('_filename', '') %}
+    {% set ts = summary.get('exportTime', summary.get('startTime', 0)) %}
+    <div class="session-card-wrapper">
+      <a href="/session/{{ filename }}" class="session-card">
+        <div class="session-card-inner">
+          <div style="flex:1">
+            <div class="session-engagement">{{ summary.get('engagement', filename) }}</div>
+            <div class="session-filename">{{ filename }}</div>
+          </div>
+          <div class="session-meta">
+            <span class="tag accent">{{ summary.get('totalRequests', 0) }} requests</span>
+            {% if summary.get('flaggedCount', 0) > 0 %}
+            <span class="tag red">&#9873; {{ summary.get('flaggedCount') }} flagged</span>
+            {% endif %}
+            {% for tool, count in summary.get('byTool', {}).items() %}
+            <span class="tag">{{ tool }}: {{ count }}</span>
+            {% endfor %}
+            {% if ts %}
+            <span class="session-time">{{ (ts / 1000) | int | format_time }}</span>
+            {% endif %}
+          </div>
+          <span class="session-arrow">&#8250;</span>
+          <button class="delete-btn" onclick="deleteSession(event, '{{ filename }}', this)">&#10005;</button>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">&#128737;</div>
+    <div class="empty-title">No sessions yet</div>
+    <div class="empty-sub">
+      Load the Patronus extension in Burp Suite, browse a target,<br>
+      then click <strong>Export JSON</strong> in the Patronus tab.
+    </div>
+    <div class="empty-code">~/.patronus/burp_sessions/</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<footer>Patronus Burp &mdash; sessions auto-reload every 10s &mdash; {{ sessions | length }} session(s) loaded</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function deleteSession(e, filename, btn) {
+  e.preventDefault(); e.stopPropagation();
+  if (!confirm('Delete session ' + filename + '?')) return;
+  fetch('/api/session/' + filename + '/delete', { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      btn.closest('.session-card-wrapper').remove();
+      showToast('Session deleted', 'success');
+    });
+}
+
+// Live poll for new sessions every 10s
+setInterval(() => {
+  fetch('/api/sessions')
+    .then(r => r.json())
+    .then(sessions => {
+      document.getElementById('live-label').textContent =
+        sessions.length + ' session(s) | ' + new Date().toLocaleTimeString();
+    });
+}, 10000);
+</script>
+
+</body>
+</html>

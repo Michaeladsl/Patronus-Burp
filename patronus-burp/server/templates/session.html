@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ summary.get('engagement', filename) }} &mdash; Patronus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #080c10;
+  --surface: #0d1117;
+  --card:    #111820;
+  --border:  #1e2936;
+  --border2: #253040;
+  --text:    #c8d6e5;
+  --muted:   #5a7080;
+  --accent:  #f0a500;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --blue:    #58a6ff;
+  --yellow:  #e3b341;
+  --purple:  #bc8cff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px);
+}
+
+/* - Header - */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,12,16,.95); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 56px;
+  display: flex; align-items: center; gap: 16px;
+}
+.logo {
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem; font-weight: 700;
+  color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 8px;
+}
+.logo-shield {
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, var(--accent), #e06c00);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .6rem; color: #000; font-weight: 800;
+}
+.header-sep { color: var(--muted); }
+.header-engagement {
+  font-family: 'JetBrains Mono', monospace; font-size: .82rem; color: var(--text);
+}
+.header-actions { margin-left: auto; display: flex; gap: 8px; }
+.hbtn {
+  font-family: 'JetBrains Mono', monospace; font-size: .72rem;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text); cursor: pointer; padding: 5px 14px; border-radius: 4px;
+  text-decoration: none; transition: all .15s;
+}
+.hbtn:hover { border-color: var(--accent); color: var(--accent); }
+.hbtn.primary { background: rgba(240,165,0,.1); border-color: rgba(240,165,0,.3); color: var(--accent); }
+
+/* - Two-pane layout - */
+.layout { display: flex; height: calc(100vh - 56px); overflow: hidden; }
+
+/* - Left: filters + request list - */
+.sidebar {
+  width: 520px; min-width: 320px;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+.filter-bar {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--card);
+}
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 6px 12px;
+}
+.search-box input {
+  background: none; border: none; outline: none; flex: 1;
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem; color: var(--text);
+}
+.search-box input::placeholder { color: var(--muted); }
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-chip {
+  font-family: 'JetBrains Mono', monospace; font-size: .68rem;
+  padding: 3px 10px; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  transition: all .12s; user-select: none;
+}
+.filter-chip:hover { border-color: var(--border2); color: var(--text); }
+.filter-chip.active { background: rgba(240,165,0,.1); border-color: rgba(240,165,0,.4); color: var(--accent); }
+.filter-chip.flag-chip.active { background: rgba(248,81,73,.1); border-color: rgba(248,81,73,.4); color: var(--red); }
+
+.request-list { flex: 1; overflow-y: auto; }
+.request-list::-webkit-scrollbar { width: 4px; }
+.request-list::-webkit-scrollbar-track { background: transparent; }
+.request-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.req-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.req-row:hover { background: rgba(255,255,255,.02); }
+.req-row.active { background: rgba(240,165,0,.06); border-left: 2px solid var(--accent); }
+.req-row.flagged { border-left: 2px solid var(--red); }
+.req-row.hidden { display: none; }
+
+.method-badge {
+  font-family: 'JetBrains Mono', monospace; font-size: .65rem; font-weight: 700;
+  padding: 2px 7px; border-radius: 3px; min-width: 52px; text-align: center;
+  flex-shrink: 0;
+}
+.GET    { background: rgba(88,166,255,.12); color: var(--blue); border: 1px solid rgba(88,166,255,.25); }
+.POST   { background: rgba(63,185,80,.12); color: var(--green); border: 1px solid rgba(63,185,80,.25); }
+.PUT    { background: rgba(227,179,65,.12); color: var(--yellow); border: 1px solid rgba(227,179,65,.25); }
+.DELETE { background: rgba(248,81,73,.12); color: var(--red); border: 1px solid rgba(248,81,73,.25); }
+.PATCH  { background: rgba(188,140,255,.12); color: var(--purple); border: 1px solid rgba(188,140,255,.25); }
+.OTHER  { background: rgba(90,112,128,.15); color: var(--muted); border: 1px solid var(--border); }
+
+.req-url {
+  flex: 1; font-family: 'JetBrains Mono', monospace; font-size: .74rem;
+  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.req-url .host { color: var(--muted); }
+.req-status { font-family: 'JetBrains Mono', monospace; font-size: .7rem; flex-shrink: 0; }
+.s2xx { color: var(--green); }
+.s3xx { color: var(--yellow); }
+.s4xx { color: var(--red); }
+.s5xx { color: var(--red); opacity: .7; }
+.req-tool { font-family: 'JetBrains Mono', monospace; font-size: .62rem; color: var(--muted); flex-shrink: 0; }
+.req-flag { color: var(--red); font-size: .8rem; flex-shrink: 0; }
+
+/* - Right: detail pane - */
+.detail {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg);
+}
+.detail-empty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+}
+.detail-header {
+  padding: 14px 24px; border-bottom: 1px solid var(--border);
+  background: var(--card); display: flex; align-items: center; gap: 12px;
+}
+.detail-method { font-size: .85rem; font-weight: 700; }
+.detail-url {
+  flex: 1; font-family: 'JetBrains Mono', monospace; font-size: .78rem;
+  color: var(--text); word-break: break-all;
+}
+.detail-actions { display: flex; gap: 8px; }
+.action-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: .7rem;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; padding: 4px 12px; border-radius: 3px;
+  transition: all .15s;
+}
+.action-btn:hover { border-color: var(--border2); color: var(--text); }
+.action-btn.flag-active { border-color: rgba(248,81,73,.4); color: var(--red); background: rgba(248,81,73,.08); }
+.action-btn.del { }
+.action-btn.del:hover { border-color: var(--red); color: var(--red); }
+
+.detail-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  background: var(--card); padding: 0 24px;
+}
+.dtab {
+  font-family: 'JetBrains Mono', monospace; font-size: .72rem;
+  padding: 10px 16px; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; transition: all .12s;
+  user-select: none;
+}
+.dtab:hover { color: var(--text); }
+.dtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.detail-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.detail-body::-webkit-scrollbar { width: 4px; }
+.detail-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.detail-panel { display: none; }
+.detail-panel.active { display: block; }
+
+.section-label {
+  font-family: 'JetBrains Mono', monospace; font-size: .62rem;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .1em;
+  margin: 0 0 8px;
+}
+.code-block {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 5px;
+  padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: .75rem;
+  color: var(--text); white-space: pre-wrap; word-break: break-all;
+  margin-bottom: 20px; max-height: 400px; overflow-y: auto; line-height: 1.5;
+}
+.code-block::-webkit-scrollbar { width: 4px; height: 4px; }
+.code-block::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.note-area {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 12px 14px; color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+  resize: vertical; min-height: 80px; outline: none;
+  transition: border-color .15s;
+}
+.note-area:focus { border-color: var(--accent); }
+.save-note-btn {
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: .72rem;
+  background: rgba(240,165,0,.1); border: 1px solid rgba(240,165,0,.3);
+  color: var(--accent); cursor: pointer; padding: 6px 16px; border-radius: 4px;
+  transition: all .15s;
+}
+.save-note-btn:hover { background: rgba(240,165,0,.2); }
+
+.existing-note {
+  background: rgba(240,165,0,.06); border: 1px solid rgba(240,165,0,.2);
+  border-radius: 5px; padding: 12px 14px; margin-bottom: 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--yellow);
+}
+.meta-grid {
+  display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: .75rem; margin-bottom: 20px;
+}
+.meta-key { color: var(--muted); }
+.meta-val { color: var(--text); word-break: break-all; }
+
+/* - Redacted highlight - */
+.code-block { }
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9998;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 18px;
+  font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--text);
+  transform: translateY(60px); opacity: 0; transition: all .25s; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok { border-color: rgba(63,185,80,.3); color: var(--green); }
+.toast.err { border-color: rgba(248,81,73,.3); color: var(--red); }
+
+/* Severity select */
+#severity-select {
+  font-family: 'JetBrains Mono', monospace; font-size: .7rem;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 4px 10px; border-radius: 3px;
+  cursor: pointer; outline: none; transition: border-color .15s;
+}
+#severity-select:hover { border-color: var(--border2); }
+#severity-select:focus { border-color: var(--accent); }
+
+/* Severity badges */
+.sev-critical { background: rgba(248,81,73,.15); color: #f85149; border: 1px solid rgba(248,81,73,.3); }
+.sev-high     { background: rgba(255,120,50,.15); color: #ff7832; border: 1px solid rgba(255,120,50,.3); }
+.sev-medium   { background: rgba(227,179,65,.15); color: #e3b341; border: 1px solid rgba(227,179,65,.3); }
+.sev-low      { background: rgba(88,166,255,.15); color: #58a6ff; border: 1px solid rgba(88,166,255,.3); }
+.sev-info     { background: rgba(90,112,128,.15); color: #5a7080; border: 1px solid rgba(90,112,128,.3); }
+
+.req-severity {
+  font-family: 'JetBrains Mono', monospace; font-size: .58rem; font-weight: 700;
+  padding: 1px 6px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo"><div class="logo-shield">P</div>PATRONUS</a>
+  <span class="header-sep">/</span>
+  <span class="header-engagement">{{ summary.get('engagement', filename) }}</span>
+  <div class="header-actions">
+    <a href="/playlist/{{ filename }}" class="hbtn primary">&#9654; Playlist</a>
+    <a href="/download/{{ filename }}" class="hbtn">&#8681; JSON</a>
+    <button class="hbtn primary" onclick="exportHtml()">&#128196; HTML Report</button>
+    <a href="/" class="hbtn">&#8592; All Sessions</a>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- - Sidebar - -->
+  <div class="sidebar">
+    <div class="filter-bar">
+      <div class="search-box">
+        <span style="color:var(--muted);font-size:.8rem">&#128269;</span>
+        <input type="text" id="search" placeholder="Search URL, host, body..." oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <span class="filter-chip active" data-filter="all" onclick="setFilter('all',this)">All ({{ requests|length }})</span>
+        <span class="filter-chip flag-chip" data-filter="flagged" onclick="setFilter('flagged',this)">&#9873; Flagged ({{ flagged|length }})</span>
+        {% for tool in tools %}
+        <span class="filter-chip" data-filter="tool:{{ tool }}" onclick="setFilter('tool:{{ tool }}',this)">{{ tool }}</span>
+        {% endfor %}
+        {% for host in hosts[:6] %}
+        <span class="filter-chip" data-filter="host:{{ host }}" onclick="setFilter('host:{{ host }}',this)">{{ host }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="request-list" id="req-list">
+      {% for req in requests %}
+      {% set method = req.get('method','GET') %}
+      {% set status = req.get('responseStatusCode', 0) %}
+      {% set statusClass = 's2xx' if 200 <= status < 300 else ('s3xx' if 300 <= status < 400 else ('s4xx' if 400 <= status < 500 else ('s5xx' if status >= 500 else ''))) %}
+      <div class="req-row {% if req.get('flagged') %}flagged{% endif %}"
+           data-id="{{ req.get('id') }}"
+           data-tool="{{ req.get('tool','') }}"
+           data-host="{{ req.get('host','') }}"
+           data-url="{{ req.get('url','') | lower }}"
+           data-method="{{ method }}"
+           data-flagged="{{ 'true' if req.get('flagged') else 'false' }}"
+           onclick="selectRequest('{{ req.get('id') }}')">
+        <span class="method-badge {{ method if method in ['GET','POST','PUT','DELETE','PATCH'] else 'OTHER' }}">{{ method }}</span>
+        <span class="req-url">
+          <span class="host">{{ req.get('host','') }}</span>{{ req.get('url','').replace('http://'+req.get('host',''),'').replace('https://'+req.get('host',''),'') or req.get('url','') }}
+        </span>
+        {% if status > 0 %}<span class="req-status {{ statusClass }}">{{ status }}</span>{% endif %}
+        <span class="req-tool">{{ req.get('tool','') }}</span>
+        {% if req.get('severity') %}<span class="req-severity sev-{{ req.get('severity') }}">{{ req.get('severity') }}</span>{% endif %}
+        {% if req.get('flagged') %}<span class="req-flag">&#9873;</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- - Detail pane - -->
+  <div class="detail" id="detail">
+    <div class="detail-empty" id="detail-empty">
+      <div style="font-size:2rem;opacity:.2">&#128269;</div>
+      <div>Select a request to inspect</div>
+    </div>
+    <div id="detail-content" style="display:none;flex:1;display:none;flex-direction:column;overflow:hidden;">
+
+      <div class="detail-header" id="d-header">
+        <span class="method-badge detail-method GET" id="d-method">GET</span>
+        <span class="detail-url" id="d-url"></span>
+        <select id="severity-select" onchange="setSeverity(this.value)">
+          <option value="">-- Severity --</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+          <option value="info">Info</option>
+        </select>
+        <div class="detail-actions">
+          <button class="action-btn" id="flag-btn" onclick="toggleFlag()">&#9873; Flag</button>
+          <button class="action-btn del" onclick="deleteRequest()">&#10005; Delete</button>
+        </div>
+      </div>
+
+      <div class="detail-tabs">
+        <div class="dtab active" onclick="showTab('request',this)">Request</div>
+        <div class="dtab" onclick="showTab('response',this)">Response</div>
+        <div class="dtab" onclick="showTab('meta',this)">Info</div>
+        <div class="dtab" onclick="showTab('notes',this)">Notes</div>
+      </div>
+
+      <div class="detail-body">
+        <div class="detail-panel active" id="tab-request">
+          <div class="section-label">Headers</div>
+          <div class="code-block" id="d-req-headers"></div>
+          <div class="section-label">Body</div>
+          <div class="code-block" id="d-req-body">- empty -</div>
+        </div>
+        <div class="detail-panel" id="tab-response">
+          <div class="section-label">Status</div>
+          <div class="code-block" id="d-resp-status"></div>
+          <div class="section-label">Headers</div>
+          <div class="code-block" id="d-resp-headers"></div>
+          <div class="section-label">Body</div>
+          <div class="code-block" id="d-resp-body">- empty -</div>
+        </div>
+        <div class="detail-panel" id="tab-meta">
+          <div class="meta-grid" id="d-meta"></div>
+        </div>
+        <div class="detail-panel" id="tab-notes">
+          <div id="existing-note-box"></div>
+          <div class="section-label">Add / Edit Note</div>
+          <textarea class="note-area" id="note-input" placeholder="Add notes about this request..."></textarea>
+          <br>
+          <button class="save-note-btn" onclick="saveNote()">Save Note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Embed all request data for client-side use
+const REQUESTS = {{ requests | tojson }};
+const FILENAME = {{ filename | tojson }};
+const reqMap = {};
+REQUESTS.forEach(r => reqMap[r.id] = r);
+
+let activeId = null;
+let activeFilter = 'all';
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showTab(name, el) {
+  document.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.dtab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+function prettyBody(text) {
+  if (!text) return text;
+  const t = text.trim();
+  if (t.startsWith('{') || t.startsWith('[')) {
+    try { return JSON.stringify(JSON.parse(t), null, 2); } catch (_) {}
+  }
+  if (t.startsWith('<')) {
+    try {
+      const doc = new DOMParser().parseFromString(t, 'text/xml');
+      if (!doc.querySelector('parsererror')) {
+        return new XMLSerializer().serializeToString(doc)
+          .replace(/></g, '>\n<').split('\n').map(l => l.trim()).join('\n');
+      }
+    } catch (_) {}
+  }
+  if (t.includes('=') && !t.includes('\n')) {
+    try {
+      return t.split('&').map(p => {
+        const [k,v] = p.split('=');
+        return decodeURIComponent(k||'') + ' = ' + decodeURIComponent(v||'');
+      }).join('\n');
+    } catch (_) {}
+  }
+  return text;
+}
+
+function setSeverity(value) {
+  if (!activeId) return;
+  fetch(`/api/session/${FILENAME}/request/${activeId}/severity`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ severity: value })
+  }).then(r => r.json()).then(() => {
+    reqMap[activeId].severity = value;
+    const row = document.querySelector(`[data-id="${activeId}"]`);
+    if (row) {
+      let badge = row.querySelector('.req-severity');
+      if (value) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'req-severity';
+          const flagEl = row.querySelector('.req-flag');
+          if (flagEl) row.insertBefore(badge, flagEl);
+          else row.appendChild(badge);
+        }
+        badge.className = 'req-severity sev-' + value;
+        badge.textContent = value;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+    showToast(value ? 'Severity set to ' + value : 'Severity cleared', 'ok');
+  });
+}
+
+function selectRequest(id) {
+  activeId = id;
+  const req = reqMap[id];
+  if (!req) return;
+
+  // Highlight row
+  document.querySelectorAll('.req-row').forEach(r => r.classList.remove('active'));
+  const row = document.querySelector(`[data-id="${id}"]`);
+  if (row) row.classList.add('active');
+
+  // Show content
+  document.getElementById('detail-empty').style.display = 'none';
+  const dc = document.getElementById('detail-content');
+  dc.style.display = 'flex';
+  dc.style.flexDirection = 'column';
+  dc.style.overflow = 'hidden';
+  dc.style.flex = '1';
+
+  // Method + URL
+  const mEl = document.getElementById('d-method');
+  mEl.textContent = req.method || 'GET';
+  mEl.className = 'method-badge detail-method ' + ((['GET','POST','PUT','DELETE','PATCH'].includes(req.method)) ? req.method : 'OTHER');
+  document.getElementById('d-url').textContent = req.url || '';
+
+  // Severity dropdown
+  document.getElementById('severity-select').value = req.severity || '';
+
+  // Flag button
+  const flagBtn = document.getElementById('flag-btn');
+  flagBtn.className = 'action-btn' + (req.flagged ? ' flag-active' : '');
+  flagBtn.textContent = (req.flagged ? '\u2691' : '\u2693') + ' Flag';
+
+  // Request tab
+  const headers = Array.isArray(req.headers) ? req.headers.join('\n') : (req.headers || '');
+  document.getElementById('d-req-headers').textContent = headers || '- no headers captured -';
+  document.getElementById('d-req-body').textContent = prettyBody(req.body) || '- empty body -';
+
+  // Response tab
+  document.getElementById('d-resp-status').textContent = req.responseStatusCode > 0 ? req.responseStatusCode : '- no response captured -';
+  const rHeaders = Array.isArray(req.responseHeaders) ? req.responseHeaders.join('\n') : (req.responseHeaders || '');
+  document.getElementById('d-resp-headers').textContent = rHeaders || '- no headers -';
+  const respBodyText = req.responseBody ? req.responseBody.substring(0, 8000) + (req.responseBody.length > 8000 ? '\n[truncated]' : '') : '';
+  document.getElementById('d-resp-body').textContent = prettyBody(respBodyText) || '- empty body -';
+
+  // Meta tab
+  const ts = req.timestamp ? new Date(req.timestamp).toLocaleString() : '-';
+  document.getElementById('d-meta').innerHTML = `
+    <span class="meta-key">Host</span><span class="meta-val">${escHtml(req.host)}</span>
+    <span class="meta-key">Port</span><span class="meta-val">${escHtml(req.port)}</span>
+    <span class="meta-key">Protocol</span><span class="meta-val">${escHtml(req.protocol)}</span>
+    <span class="meta-key">Tool</span><span class="meta-val">${escHtml(req.tool)}</span>
+    <span class="meta-key">Engagement</span><span class="meta-val">${escHtml(req.engagementTag)}</span>
+    <span class="meta-key">Timestamp</span><span class="meta-val">${ts}</span>
+    <span class="meta-key">Request ID</span><span class="meta-val" style="font-size:.65rem;color:var(--muted)">${escHtml(req.id)}</span>
+  `;
+
+  // Notes tab
+  const nb = document.getElementById('existing-note-box');
+  if (req.notes) {
+    nb.innerHTML = `<div class="existing-note">&#128221; ${escHtml(req.notes)}</div>`;
+  } else {
+    nb.innerHTML = '';
+  }
+  document.getElementById('note-input').value = req.notes || '';
+}
+
+function toggleFlag() {
+  if (!activeId) return;
+  fetch(`/api/session/${FILENAME}/request/${activeId}/flag`, { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      const req = reqMap[activeId];
+      req.flagged = !req.flagged;
+      const row = document.querySelector(`[data-id="${activeId}"]`);
+      if (row) {
+        row.dataset.flagged = req.flagged ? 'true' : 'false';
+        row.classList.toggle('flagged', req.flagged);
+        const flagIcon = row.querySelector('.req-flag');
+        if (req.flagged && !flagIcon) {
+          const span = document.createElement('span');
+          span.className = 'req-flag'; span.textContent = '\u2691';
+          row.appendChild(span);
+        } else if (!req.flagged && flagIcon) {
+          flagIcon.remove();
+        }
+      }
+      const flagBtn = document.getElementById('flag-btn');
+      flagBtn.className = 'action-btn' + (req.flagged ? ' flag-active' : '');
+      flagBtn.textContent = (req.flagged ? '\u2691' : '\u2693') + ' Flag';
+      showToast(req.flagged ? 'Request flagged' : 'Flag removed', 'ok');
+    });
+}
+
+function saveNote() {
+  if (!activeId) return;
+  const note = document.getElementById('note-input').value;
+  fetch(`/api/session/${FILENAME}/request/${activeId}/note`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note })
+  }).then(r => r.json()).then(() => {
+    reqMap[activeId].notes = note;
+    const nb = document.getElementById('existing-note-box');
+    nb.innerHTML = note ? `<div class="existing-note">&#128221; ${escHtml(note)}</div>` : '';
+    showToast('Note saved', 'ok');
+  });
+}
+
+function deleteRequest() {
+  if (!activeId) return;
+  if (!confirm('Delete this request?')) return;
+  fetch(`/api/session/${FILENAME}/request/${activeId}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      const row = document.querySelector(`[data-id="${activeId}"]`);
+      if (row) row.remove();
+      delete reqMap[activeId];
+      activeId = null;
+      document.getElementById('detail-content').style.display = 'none';
+      document.getElementById('detail-empty').style.display = 'flex';
+      showToast('Request deleted', 'ok');
+    });
+}
+
+function setFilter(filter, el) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.req-row').forEach(row => {
+    const url = row.dataset.url || '';
+    const tool = row.dataset.tool || '';
+    const host = row.dataset.host || '';
+    const flagged = row.dataset.flagged === 'true';
+
+    let show = true;
+    if (activeFilter === 'flagged') show = flagged;
+    else if (activeFilter.startsWith('tool:')) show = tool === activeFilter.slice(5);
+    else if (activeFilter.startsWith('host:')) show = host === activeFilter.slice(5);
+
+    if (show && search) {
+      show = url.includes(search) || host.includes(search);
+      // Also search in body/headers if loaded
+      const req = reqMap[row.dataset.id];
+      if (!show && req) {
+        const body = (req.body || '').toLowerCase();
+        const rBody = (req.responseBody || '').toLowerCase();
+        show = body.includes(search) || rBody.includes(search);
+      }
+    }
+    row.classList.toggle('hidden', !show);
+  });
+}
+
+function exportHtml() {
+  // Trigger HTML export via the Burp extension's last export, or just download JSON
+  showToast('Use Export HTML Report button in the Burp Patronus tab', 'ok');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// Auto-reload request list every 15s to pick up new captures
+setInterval(() => {
+  fetch(`/api/session/${FILENAME}`)
+    .then(r => r.json())
+    .then(data => {
+      const newReqs = data.requests || [];
+      newReqs.forEach(r => { reqMap[r.id] = r; });
+    });
+}, 15000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patronus - Playlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080c10;--surface:#0d1117;--card:#111820;--border:#1e2936;
+  --border2:#253040;--text:#c8d6e5;--muted:#5a7080;--accent:#f0a500;
+  --accent2:#e06c00;--green:#3fb950;--red:#f85149;--blue:#58a6ff;
+  --yellow:#e3b341;--purple:#bc8cff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);}
+
+/* ---- Header ---- */
+header{position:sticky;top:0;z-index:100;background:rgba(8,12,16,.95);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);
+  padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;}
+.logo{font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:700;
+  color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:8px;}
+.logo-shield{width:24px;height:24px;background:linear-gradient(135deg,var(--accent),#e06c00);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#000;font-weight:800;}
+.header-sep{color:var(--muted);}
+.header-title{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text);}
+.header-actions{margin-left:auto;display:flex;gap:8px;}
+.hbtn{font-family:'JetBrains Mono',monospace;font-size:.72rem;background:var(--card);
+  border:1px solid var(--border);color:var(--text);cursor:pointer;padding:5px 14px;
+  border-radius:4px;text-decoration:none;transition:all .15s;}
+.hbtn:hover{border-color:var(--accent);color:var(--accent);}
+.hbtn.primary{background:rgba(240,165,0,.1);border-color:rgba(240,165,0,.3);color:var(--accent);}
+.hbtn.green-btn{background:rgba(63,185,80,.1);border-color:rgba(63,185,80,.3);color:var(--green);}
+
+/* ---- Builder layout ---- */
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden;}
+.picker{width:400px;min-width:260px;display:flex;flex-direction:column;
+  border-right:1px solid var(--border);background:var(--surface);}
+.picker-header{padding:12px 14px;border-bottom:1px solid var(--border);
+  background:var(--card);display:flex;flex-direction:column;gap:8px;}
+.picker-title{font-family:'JetBrains Mono',monospace;font-size:.63rem;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--surface);
+  border:1px solid var(--border);border-radius:5px;padding:5px 10px;}
+.search-box input{background:none;border:none;outline:none;flex:1;
+  font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--text);}
+.search-box input::placeholder{color:var(--muted);}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;}
+.fc{font-family:'JetBrains Mono',monospace;font-size:.63rem;padding:2px 8px;
+  border-radius:3px;cursor:pointer;border:1px solid var(--border);
+  background:var(--surface);color:var(--muted);transition:all .12s;user-select:none;}
+.fc:hover{color:var(--text);}
+.fc.active{background:rgba(240,165,0,.1);border-color:rgba(240,165,0,.4);color:var(--accent);}
+.bulk-row{display:flex;gap:5px;}
+.bulk-btn{font-family:'JetBrains Mono',monospace;font-size:.63rem;padding:3px 9px;
+  border-radius:3px;cursor:pointer;border:1px solid var(--border);
+  background:var(--surface);color:var(--muted);transition:all .12s;}
+.bulk-btn:hover{border-color:var(--green);color:var(--green);}
+.req-picker-list{flex:1;overflow-y:auto;}
+.req-picker-list::-webkit-scrollbar{width:3px;}
+.req-picker-list::-webkit-scrollbar-thumb{background:var(--border2);}
+.pick-row{display:flex;align-items:center;gap:7px;padding:8px 12px;
+  border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;}
+.pick-row:hover{background:rgba(255,255,255,.04);}
+.pick-row.favorited{border-left:2px solid var(--accent);}
+.pick-row.hidden{display:none;}
+.method-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;
+  padding:2px 5px;border-radius:3px;min-width:46px;text-align:center;flex-shrink:0;}
+.GET{background:rgba(88,166,255,.12);color:var(--blue);border:1px solid rgba(88,166,255,.25);}
+.POST{background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.25);}
+.PUT{background:rgba(227,179,65,.12);color:var(--yellow);border:1px solid rgba(227,179,65,.25);}
+.DELETE{background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.25);}
+.PATCH{background:rgba(188,140,255,.12);color:var(--purple);border:1px solid rgba(188,140,255,.25);}
+.OTHER{background:rgba(90,112,128,.15);color:var(--muted);border:1px solid var(--border);}
+.pick-url{flex:1;font-family:'JetBrains Mono',monospace;font-size:.68rem;
+  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pick-url .host{color:var(--muted);}
+.pick-tool{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);flex-shrink:0;}
+.star-btn{background:none;border:none;cursor:pointer;font-size:.85rem;
+  color:var(--muted);transition:color .15s;padding:1px 3px;flex-shrink:0;}
+.star-btn:hover,.star-btn.starred{color:var(--accent);}
+.add-btn{background:none;border:1px solid var(--border);cursor:pointer;
+  font-size:.65rem;color:var(--muted);padding:2px 7px;border-radius:3px;
+  font-family:'JetBrains Mono',monospace;transition:all .15s;flex-shrink:0;}
+.add-btn:hover{border-color:var(--green);color:var(--green);}
+
+/* ---- Right pane ---- */
+.right-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.playlist-section{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ---- Preview pane (replaces playlist when a picker item is clicked) ---- */
+.preview-pane{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.preview-pane.active{display:flex;}
+.preview-pane.active ~ .playlist-section{display:none;}
+.preview-header{padding:10px 18px;border-bottom:1px solid var(--border);
+  background:var(--card);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.preview-title{font-family:'JetBrains Mono',monospace;font-size:.63rem;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex:1;}
+.preview-method{font-size:.78rem;font-weight:700;}
+.preview-url{font-family:'JetBrains Mono',monospace;font-size:.68rem;
+  color:var(--text);word-break:break-all;line-height:1.3;flex:1;}
+.preview-close{font-family:'JetBrains Mono',monospace;font-size:.65rem;background:none;
+  border:1px solid var(--border);color:var(--muted);cursor:pointer;padding:3px 10px;
+  border-radius:3px;transition:all .15s;}
+.preview-close:hover{border-color:var(--red);color:var(--red);}
+.preview-add{font-family:'JetBrains Mono',monospace;font-size:.65rem;
+  background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.3);color:var(--green);
+  cursor:pointer;padding:3px 12px;border-radius:3px;transition:all .15s;}
+.preview-add:hover{background:rgba(63,185,80,.18);}
+.preview-split{flex:1;display:flex;overflow:hidden;}
+.preview-req,.preview-resp{flex:1;display:flex;flex-direction:column;overflow-y:auto;min-width:0;}
+.preview-req{border-right:1px solid var(--border);}
+.preview-req::-webkit-scrollbar,.preview-resp::-webkit-scrollbar{width:3px;}
+.preview-req::-webkit-scrollbar-thumb,.preview-resp::-webkit-scrollbar-thumb{background:var(--border2);}
+.preview-section-hdr{padding:10px 18px;border-bottom:1px solid var(--border);
+  background:var(--card);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.preview-label{font-family:'JetBrains Mono',monospace;font-size:.58rem;
+  text-transform:uppercase;letter-spacing:.1em;font-weight:700;}
+.preview-label.req-c{color:#58a6ff;}
+.preview-label.resp-c{color:#3fb950;}
+.preview-status{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:700;}
+.preview-status-text{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted);}
+.preview-body{padding:14px 18px;}
+.playlist-header{padding:11px 18px;border-bottom:1px solid var(--border);
+  background:var(--card);display:flex;align-items:center;gap:10px;}
+.playlist-title{font-family:'JetBrains Mono',monospace;font-size:.63rem;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex:1;}
+.playlist-count{font-family:'JetBrains Mono',monospace;font-size:.68rem;
+  color:var(--muted);background:var(--surface);border:1px solid var(--border);
+  padding:2px 8px;border-radius:3px;}
+.clear-btn{font-family:'JetBrains Mono',monospace;font-size:.65rem;background:none;
+  border:1px solid var(--border);color:var(--muted);cursor:pointer;padding:3px 10px;
+  border-radius:3px;transition:all .15s;}
+.clear-btn:hover{border-color:var(--red);color:var(--red);}
+.playlist-body{flex:1;overflow-y:auto;padding:10px;}
+.playlist-body::-webkit-scrollbar{width:3px;}
+.playlist-body::-webkit-scrollbar-thumb{background:var(--border2);}
+.playlist-empty{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;gap:8px;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-size:.72rem;opacity:.6;}
+.pl-item{display:flex;align-items:center;gap:9px;padding:8px 12px;
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  margin-bottom:6px;cursor:grab;transition:all .15s;user-select:none;}
+.pl-item:active{cursor:grabbing;}
+.pl-item.drag-over{border-color:var(--accent);background:rgba(240,165,0,.06);}
+.pl-item.dragging{opacity:.35;}
+.pl-num{font-family:'JetBrains Mono',monospace;font-size:.63rem;color:var(--muted);min-width:18px;text-align:right;}
+.drag-handle{color:var(--muted);font-size:.75rem;cursor:grab;flex-shrink:0;}
+.pl-url{flex:1;font-family:'JetBrains Mono',monospace;font-size:.68rem;
+  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pl-url .host{color:var(--muted);}
+.pl-remove{background:none;border:none;cursor:pointer;color:var(--muted);
+  font-size:.72rem;padding:2px 4px;transition:color .15s;flex-shrink:0;}
+.pl-remove:hover{color:var(--red);}
+
+/* ---- Player controls bar ---- */
+.player-controls{padding:12px 18px;background:var(--card);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.speed-label{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted);}
+.speed-select{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;padding:4px 8px;border-radius:3px;}
+.progress-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .3s;}
+.progress-label{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted);}
+.play-btn{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;
+  background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.4);color:var(--green);
+  cursor:pointer;padding:7px 22px;border-radius:5px;transition:all .15s;}
+.play-btn:hover{background:rgba(63,185,80,.2);}
+.mic-btn{font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  background:rgba(90,112,128,.08);border:1px solid var(--border);color:var(--muted);
+  cursor:pointer;padding:7px 14px;border-radius:5px;transition:all .15s;}
+.mic-btn:hover{border-color:var(--accent);color:var(--accent);}
+.mic-btn.mic-on{background:rgba(63,185,80,.12);border-color:rgba(63,185,80,.4);color:var(--green);
+  animation:mic-pulse 2s infinite;}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.3);}50%{box-shadow:0 0 0 5px rgba(63,185,80,0);}}
+.rec-btn{font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);color:var(--red);
+  cursor:pointer;padding:7px 14px;border-radius:5px;transition:all .15s;}
+.rec-btn:hover{background:rgba(248,81,73,.18);}
+.rec-btn.recording{background:rgba(248,81,73,.2);border-color:var(--red);
+  animation:rec-pulse 1.2s infinite;}
+@keyframes rec-pulse{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.4);}50%{box-shadow:0 0 0 6px rgba(248,81,73,0);}}
+
+/* ==== PLAYER OVERLAY ==== */
+#player-overlay{position:fixed;inset:0;z-index:1000;background:var(--bg);
+  display:none;flex-direction:column;}
+#player-overlay.active{display:flex;}
+
+/* Top bar */
+.player-topbar{display:flex;align-items:center;gap:10px;padding:0 20px;
+  height:50px;background:rgba(8,12,16,.98);border-bottom:1px solid var(--border);flex-shrink:0;}
+.player-logo{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;color:var(--accent);}
+.player-engagement{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--text);}
+.player-counter{font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  color:var(--muted);background:var(--card);border:1px solid var(--border);
+  padding:2px 10px;border-radius:3px;}
+.player-stage-label{font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  padding:2px 10px;border-radius:3px;border:1px solid rgba(240,165,0,.2);
+  background:rgba(240,165,0,.06);color:var(--accent);}
+.tb-spacer{flex:1;}
+.kb-hint{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);
+  background:var(--surface);border:1px solid var(--border);padding:1px 6px;border-radius:3px;}
+.tb-btn{font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  background:var(--card);border:1px solid var(--border);color:var(--text);
+  cursor:pointer;padding:4px 13px;border-radius:4px;transition:all .15s;}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent);}
+.tb-btn.stop{background:rgba(248,81,73,.08);border-color:rgba(248,81,73,.25);color:var(--red);}
+.tb-btn.stop:hover{background:rgba(248,81,73,.18);}
+
+/* Main split stage */
+.player-stage{flex:1;display:flex;overflow-y:auto;min-height:0;}
+.http-split{flex:1;display:flex;position:relative;align-items:stretch;min-height:min-content;}
+
+/* Request pane */
+.req-pane{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);
+  background:var(--surface);min-width:0;overflow:visible;}
+.pane-header{padding:10px 18px;border-bottom:1px solid var(--border);
+  background:var(--card);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.pane-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;
+  text-transform:uppercase;letter-spacing:.1em;font-weight:700;flex-shrink:0;}
+.pane-label.req-label{color:#58a6ff;}
+.pane-label.resp-label{color:#3fb950;}
+.pane-method{font-size:.8rem;font-weight:700;flex-shrink:0;}
+.pane-url{flex:1;font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  color:var(--text);word-break:break-all;line-height:1.3;}
+.pane-status{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:700;flex-shrink:0;}
+.status-text{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);flex-shrink:0;}
+.tool-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;
+  background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.2);
+  color:var(--blue);padding:2px 8px;border-radius:3px;flex-shrink:0;margin-left:auto;}
+.s2xx{color:var(--green);}
+.s3xx{color:var(--yellow);}
+.s4xx{color:var(--red);}
+
+/* Response pane */
+.resp-pane{flex:1;display:flex;flex-direction:column;background:var(--surface);
+  min-width:0;position:relative;overflow:visible;}
+.resp-pane-inner{flex:1;display:flex;flex-direction:column;opacity:0;
+  transition:opacity .6s ease;overflow:visible;}
+.resp-pane-inner.visible{opacity:1;}
+.resp-waiting{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted);}
+.resp-waiting.hidden{display:none;}
+.wait-spinner{width:28px;height:28px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Pane content */
+.pane-body{flex:1;padding:14px 18px;}
+.sec-label{font-family:'JetBrains Mono',monospace;font-size:.58rem;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:4px;
+  padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  color:var(--text);white-space:pre-wrap;word-break:break-all;margin-bottom:16px;
+  line-height:1.5;}
+.code-block::-webkit-scrollbar{width:3px;}
+.code-block::-webkit-scrollbar-thumb{background:var(--border2);}
+.note-box{background:rgba(240,165,0,.06);border:1px solid rgba(240,165,0,.2);
+  border-radius:4px;padding:10px 12px;font-family:'JetBrains Mono',monospace;
+  font-size:.74rem;color:var(--yellow);margin-bottom:14px;line-height:1.5;}
+.hl-header{color:var(--accent);}
+
+/* Typewriter cursor */
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+.cursor{display:inline-block;width:7px;height:13px;background:var(--accent);
+  vertical-align:middle;margin-left:1px;animation:blink 1s infinite;}
+
+/* Selected picker row */
+.pick-row.selected{background:rgba(240,165,0,.14);outline:1px solid rgba(240,165,0,.35);}
+
+/* Clickable/highlightable lines inside code blocks during playback */
+.code-line{display:block;cursor:pointer;border-radius:2px;padding:0 3px;margin:0 -3px;
+  transition:background .12s;}
+.code-line:hover{background:rgba(240,165,0,.1);}
+.code-line.marked{background:rgba(240,165,0,.25);color:var(--accent);
+  border-left:2px solid var(--accent);padding-left:5px;}
+
+/* Summary line */
+.summary-line{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--muted);
+  padding:10px 0 14px;border-bottom:1px solid var(--border);margin-bottom:14px;
+  font-style:italic;line-height:1.5;}
+.summary-line strong{color:var(--text);font-style:normal;}
+
+/* Content-type label */
+.ct-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);
+  background:var(--bg);border:1px solid var(--border);display:inline-block;
+  padding:1px 8px;border-radius:3px;margin-bottom:6px;}
+
+/* Severity badges */
+.sev-badge{font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:700;
+  padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0;}
+.sev-critical{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.3);}
+.sev-high{background:rgba(224,108,0,.12);color:var(--accent2);border:1px solid rgba(224,108,0,.25);}
+.sev-medium{background:rgba(227,179,65,.12);color:var(--yellow);border:1px solid rgba(227,179,65,.25);}
+.sev-low{background:rgba(88,166,255,.1);color:var(--blue);border:1px solid rgba(88,166,255,.2);}
+.sev-info{background:rgba(90,112,128,.1);color:var(--muted);border:1px solid var(--border);}
+
+/* Flow indicator between panes */
+.flow-indicator{position:absolute;top:0;bottom:0;left:50%;width:3px;z-index:5;
+  pointer-events:none;transform:translateX(-50%);}
+.flow-indicator .flow-line{position:absolute;inset:0;background:var(--border);}
+.flow-indicator .flow-pulse{position:absolute;left:50%;width:3px;height:40px;
+  border-radius:2px;transform:translateX(-50%);opacity:0;}
+.flow-outgoing .flow-pulse{background:var(--blue);
+  animation:pulse-down 1.5s ease-in-out infinite;}
+.flow-incoming .flow-pulse{background:var(--green);
+  animation:pulse-up 1.5s ease-in-out infinite;}
+.flow-indicator .flow-dot{position:absolute;left:50%;transform:translateX(-50%);
+  width:9px;height:9px;border-radius:50%;top:50%;}
+.flow-outgoing .flow-dot{background:var(--blue);box-shadow:0 0 8px rgba(88,166,255,.5);
+  animation:dot-pulse 1.5s ease-in-out infinite;}
+.flow-incoming .flow-dot{background:var(--green);box-shadow:0 0 8px rgba(63,185,80,.5);
+  animation:dot-pulse 1.5s ease-in-out infinite;}
+@keyframes pulse-down{0%{top:10%;opacity:0}30%{opacity:.8}70%{opacity:.8}100%{top:85%;opacity:0}}
+@keyframes pulse-up{0%{top:85%;opacity:0}30%{opacity:.8}70%{opacity:.8}100%{top:10%;opacity:0}}
+@keyframes dot-pulse{0%,100%{transform:translateX(-50%) scale(1);opacity:.7}50%{transform:translateX(-50%) scale(1.6);opacity:1}}
+
+/* Bottom bar */
+.player-bottom{padding:10px 24px;background:var(--card);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.prog-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:3px;transition:width .4s;}
+.phase-label{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted);min-width:120px;}
+.timer-label{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted);min-width:36px;text-align:right;}
+.next-btn{font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  background:var(--card);border:1px solid var(--border);color:var(--text);
+  cursor:pointer;padding:5px 14px;border-radius:4px;transition:all .15s;}
+.next-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Done screen */
+.done-screen{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;font-family:'JetBrains Mono',monospace;}
+.done-icon{font-size:2.8rem;opacity:.55;}
+.done-title{font-size:1.05rem;font-weight:700;color:var(--green);}
+.done-sub{font-size:.78rem;color:var(--muted);}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;right:22px;z-index:9998;
+  background:var(--card);border:1px solid var(--border);border-radius:5px;
+  padding:9px 16px;font-family:'JetBrains Mono',monospace;font-size:.76rem;
+  color:var(--text);transform:translateY(60px);opacity:0;transition:all .25s;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-color:rgba(63,185,80,.3);color:var(--green);}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo"><div class="logo-shield">P</div>PATRONUS</a>
+  <span class="header-sep">/</span>
+  <span class="header-title">{{ summary.get('engagement','Session') }} &mdash; Playlist Builder</span>
+  <div class="header-actions">
+    <a href="/session/{{ filename }}" class="hbtn">&#8592; Session</a>
+    <button class="hbtn green-btn" onclick="startPlayer()">&#9654; Play Playlist</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: picker -->
+  <div class="picker">
+    <div class="picker-header">
+      <div class="picker-title">{{ requests|length }} requests &mdash; {{ summary.get('engagement','') }}</div>
+      <div class="search-box">
+        <span style="color:var(--muted);font-size:.8rem">&#9906;</span>
+        <input type="text" id="pick-search" placeholder="Filter by URL or host...  [ / ]" oninput="filterPicker()">
+      </div>
+      <div class="filter-row" id="pick-filters">
+        <span class="fc active" data-f="all" onclick="setPickFilter('all',this)">All</span>
+        <span class="fc" data-f="starred" onclick="setPickFilter('starred',this)">&#9733; Starred</span>
+        {% for tool in tools %}
+        <span class="fc" data-f="tool:{{ tool }}" data-tool="{{ tool }}" onclick="setPickFilter('tool:{{ tool }}',this)">{{ tool }}</span>
+        {% endfor %}
+      </div>
+      <div class="bulk-row">
+        <button class="bulk-btn" onclick="addAllSelected()" id="add-selected-btn" title="Add selected to playlist" style="display:none">+ Add Selected</button>
+        <button class="bulk-btn" onclick="addAllStarred()" title="Add all starred to playlist">+ Add All Starred</button>
+        <button class="bulk-btn" onclick="addAllVisible()" title="Add all currently visible to playlist">+ Add All Visible</button>
+      </div>
+    </div>
+    <div class="req-picker-list" id="req-picker-list">
+      {% for req in requests %}
+      {% set method = req.get('method','GET') %}
+      <div class="pick-row {% if req.get('flagged') %}favorited{% endif %}"
+           data-id="{{ req.get('id') }}"
+           data-tool="{{ req.get('tool','') }}"
+           data-url="{{ req.get('url','') | lower }}"
+           data-starred="{{ 'true' if req.get('flagged') else 'false' }}"
+           onclick="handleRowClick(event,'{{ req.get('id') }}')"
+           ondblclick="addToPlaylist('{{ req.get('id') }}')"
+           title="Click to select, double-click to add">
+        <button class="star-btn {% if req.get('flagged') %}starred{% endif %}"
+                onclick="toggleStar(event,'{{ req.get('id') }}')" title="Star">&#9733;</button>
+        <span class="method-badge {{ method if method in ['GET','POST','PUT','DELETE','PATCH'] else 'OTHER' }}">{{ method }}</span>
+        <span class="pick-url">
+          <span class="host">{{ req.get('host','') }}</span>{{ req.get('url','').replace('https://'+req.get('host',''),'').replace('http://'+req.get('host',''),'') }}
+        </span>
+        <span class="pick-tool">{{ req.get('tool','') }}</span>
+        <button class="add-btn" onclick="addToPlaylist('{{ req.get('id') }}')">+ Add</button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- RIGHT: preview + playlist + controls -->
+  <div class="right-pane">
+    <!-- Preview pane (shown when picker item clicked) -->
+    <div class="preview-pane" id="preview-pane">
+      <div class="preview-header">
+        <span class="preview-title" id="preview-title">PREVIEW</span>
+        <span class="preview-method" id="preview-method"></span>
+        <span class="preview-url" id="preview-url"></span>
+        <button class="preview-add" id="preview-add-btn" onclick="addPreviewToPlaylist()">+ Add to Playlist</button>
+        <button class="preview-close" onclick="closePreview()">&times; Close</button>
+      </div>
+      <div class="preview-split">
+        <div class="preview-req" id="preview-req">
+          <div class="preview-section-hdr">
+            <span class="preview-label req-c">REQUEST</span>
+            <span class="preview-method" id="preview-req-method"></span>
+          </div>
+          <div class="preview-body" id="preview-req-body"></div>
+        </div>
+        <div class="preview-resp" id="preview-resp">
+          <div class="preview-section-hdr">
+            <span class="preview-label resp-c">RESPONSE</span>
+            <span class="preview-status" id="preview-resp-status"></span>
+            <span class="preview-status-text" id="preview-resp-status-text"></span>
+          </div>
+          <div class="preview-body" id="preview-resp-body"></div>
+        </div>
+      </div>
+    </div>
+    <div class="playlist-section">
+      <div class="playlist-header">
+        <span class="playlist-title">&#9654; Playlist</span>
+        <span class="playlist-count" id="pl-count">0 items</span>
+        <button class="clear-btn" onclick="clearPlaylist()">Clear</button>
+      </div>
+      <div class="playlist-body" id="playlist-body">
+        <div class="playlist-empty" id="pl-empty">
+          <div style="font-size:2rem;opacity:.25">&#9654;</div>
+          <div>Add requests from the left panel</div>
+          <div style="font-size:.68rem;opacity:.6">Double-click or + Add &bull; Star to save &bull; Drag to reorder</div>
+        </div>
+      </div>
+    </div>
+    <div class="player-controls">
+      <span class="speed-label">Request:</span>
+      <select class="speed-select" id="req-speed">
+        <option value="5000">Slow (5s)</option>
+        <option value="3000" selected>Normal (3s)</option>
+        <option value="1500">Fast (1.5s)</option>
+      </select>
+      <span class="speed-label">Response:</span>
+      <select class="speed-select" id="resp-speed">
+        <option value="6000">Slow (6s)</option>
+        <option value="4000" selected>Normal (4s)</option>
+        <option value="2000">Fast (2s)</option>
+      </select>
+      <span class="speed-label">Pause:</span>
+      <select class="speed-select" id="pause-speed">
+        <option value="500">None (0.5s)</option>
+        <option value="2000" selected>Short (2s)</option>
+        <option value="4000">Medium (4s)</option>
+        <option value="7000">Long (7s)</option>
+        <option value="12000">Very Long (12s)</option>
+      </select>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+      <span class="progress-label" id="prog-label">0 / 0</span>
+      <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Enable microphone narration">&#127908; Mic Off</button>
+      <button class="rec-btn" id="rec-btn" onclick="toggleRecord()" title="Record to video">&#9210; Record</button>
+      <button class="play-btn" onclick="startPlayer()">&#9654; Play</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== PLAYER OVERLAY ==== -->
+<div id="player-overlay">
+
+  <div class="player-topbar">
+    <span class="player-logo">PATRONUS</span>
+    <span class="header-sep">/</span>
+    <span class="player-engagement">{{ summary.get('engagement','') }}</span>
+    <span class="player-counter" id="player-counter">1 / 1</span>
+    <span class="player-stage-label" id="stage-label">Sending request...</span>
+    <div class="tb-spacer"></div>
+    <span class="kb-hint">Space=pause</span>
+    <span class="kb-hint">&#8594;=skip</span>
+    <span class="kb-hint">Esc=stop</span>
+    <button class="tb-btn" id="pause-btn" onclick="togglePause()">&#9646;&#9646; Pause</button>
+    <button class="tb-btn" onclick="skipItem()">Skip &#8250;</button>
+    <button class="tb-btn stop" onclick="stopPlayer()">&#9632; Stop</button>
+  </div>
+
+  <div class="player-stage">
+    <!-- http-split is the recording crop target — no sidebar, clean frame -->
+    <div class="http-split" id="http-split">
+
+      <div class="flow-indicator" id="flow-indicator">
+        <div class="flow-line"></div>
+        <div class="flow-pulse"></div>
+        <div class="flow-dot"></div>
+      </div>
+
+      <div class="req-pane" id="req-pane">
+        <div class="pane-header">
+          <span class="pane-label req-label">REQUEST</span>
+          <span class="pane-method" id="req-method-badge">GET</span>
+          <span class="pane-url" id="req-url-display"></span>
+          <span class="tool-badge" id="req-tool-badge" style="display:none"></span>
+        </div>
+        <div class="pane-body" id="req-pane-body"></div>
+      </div>
+
+      <div class="resp-pane" id="resp-pane">
+        <div class="resp-waiting" id="resp-waiting">
+          <div class="wait-spinner"></div>
+          <div>Awaiting response...</div>
+        </div>
+        <div class="resp-pane-inner" id="resp-pane-inner">
+          <div class="pane-header">
+            <span class="pane-label resp-label">RESPONSE</span>
+            <span class="pane-status" id="resp-status-badge"></span>
+            <span class="status-text" id="resp-status-text"></span>
+          </div>
+          <div class="pane-body" id="resp-pane-body"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="player-bottom">
+    <span class="phase-label" id="phase-label">--</span>
+    <div class="prog-bar"><div class="prog-fill" id="player-prog-fill"></div></div>
+    <span class="timer-label" id="player-timer">--</span>
+    <button class="next-btn" onclick="skipItem()">Next &#8250;</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const REQUESTS = {{ requests | tojson }};
+const FILENAME = {{ filename | tojson }};
+const reqMap = {};
+REQUESTS.forEach(r => { reqMap[r.id] = r; });
+
+// ---- Builder state ----
+let playlist = [];
+let pickFilter = 'all';
+let selectedIds = new Set();
+let lastClickedIdx = -1;
+
+// ---- Player state ----
+let playerIndex = 0;
+let playerPhase = 'idle';
+let phaseTimer = null;
+let countdownTimer = null;
+let paused = false;
+let phaseRemaining = 0;
+let phaseTotal = 0;
+let currentCallback = null;
+
+// ---- Picker / filter ----
+function setPickFilter(f, el) {
+  pickFilter = f;
+  document.querySelectorAll('.fc').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterPicker();
+}
+function filterPicker() {
+  const q = document.getElementById('pick-search').value.toLowerCase();
+  document.querySelectorAll('.pick-row').forEach(row => {
+    const url = row.dataset.url || '';
+    const tool = row.dataset.tool || '';
+    const starred = row.dataset.starred === 'true';
+    let show = true;
+    if (pickFilter === 'starred') show = starred;
+    else if (pickFilter.startsWith('tool:')) show = tool === pickFilter.slice(5);
+    if (show && q) show = url.includes(q);
+    row.classList.toggle('hidden', !show);
+  });
+  updateChipCounts();
+}
+function updateChipCounts() {
+  const q = document.getElementById('pick-search').value.toLowerCase();
+  let total = 0, starred = 0;
+  const toolCounts = {};
+  document.querySelectorAll('.pick-row').forEach(row => {
+    const url = row.dataset.url || '';
+    const tool = row.dataset.tool || '';
+    if (!q || url.includes(q)) {
+      total++;
+      if (row.dataset.starred === 'true') starred++;
+      toolCounts[tool] = (toolCounts[tool] || 0) + 1;
+    }
+  });
+  const allChip = document.querySelector('.fc[data-f="all"]');
+  if (allChip) allChip.textContent = 'All (' + total + ')';
+  const starChip = document.querySelector('.fc[data-f="starred"]');
+  if (starChip) starChip.innerHTML = '&#9733; Starred (' + starred + ')';
+  document.querySelectorAll('.fc[data-tool]').forEach(chip => {
+    chip.textContent = chip.dataset.tool + ' (' + (toolCounts[chip.dataset.tool] || 0) + ')';
+  });
+}
+
+// ---- Row selection ----
+let previewId = null;
+
+function handleRowClick(e, id) {
+  if (e.target.closest('.star-btn, .add-btn')) return;
+  const allRows = [...document.querySelectorAll('.pick-row:not(.hidden)')];
+  const clickedIdx = allRows.findIndex(r => r.dataset.id === id);
+
+  if (e.shiftKey && lastClickedIdx !== -1) {
+    const lo = Math.min(lastClickedIdx, clickedIdx);
+    const hi = Math.max(lastClickedIdx, clickedIdx);
+    const targetState = !selectedIds.has(id);
+    for (let i = lo; i <= hi; i++) {
+      const rowId = allRows[i].dataset.id;
+      if (targetState) selectedIds.add(rowId); else selectedIds.delete(rowId);
+    }
+  } else if (e.ctrlKey || e.metaKey) {
+    if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  } else {
+    // Single click: open preview
+    selectedIds.clear();
+    selectedIds.add(id);
+    showPreview(id);
+  }
+
+  lastClickedIdx = clickedIdx;
+  document.querySelectorAll('.pick-row').forEach(r => r.classList.toggle('selected', selectedIds.has(r.dataset.id)));
+  const btn = document.getElementById('add-selected-btn');
+  if (btn) {
+    btn.style.display = selectedIds.size > 0 ? '' : 'none';
+    btn.textContent = '+ Add Selected (' + selectedIds.size + ')';
+  }
+}
+
+function showPreview(id) {
+  const req = reqMap[id];
+  if (!req) return;
+  previewId = id;
+  const method = req.method || 'GET';
+  const host = req.host || '';
+  const path = (req.url || '').replace('https://'+host,'').replace('http://'+host,'') || req.url;
+
+  // Header
+  const mc = ['GET','POST','PUT','DELETE','PATCH'].includes(method) ? method : 'OTHER';
+  document.getElementById('preview-method').className = 'preview-method ' + mc;
+  document.getElementById('preview-method').textContent = method;
+  document.getElementById('preview-url').textContent = host + path;
+  document.getElementById('preview-add-btn').textContent =
+    playlist.includes(id) ? '\u2713 In Playlist' : '+ Add to Playlist';
+
+  // Request side
+  document.getElementById('preview-req-method').className = 'preview-method ' + mc;
+  document.getElementById('preview-req-method').textContent = method + ' ' + (path || '/');
+
+  let reqHTML = '';
+  const reqHeaders = Array.isArray(req.headers) ? req.headers.join('\n') : (req.headers || req.requestHeaders || '');
+  if (reqHeaders) {
+    reqHTML += '<div class="sec-label">Headers</div>';
+    reqHTML += '<div class="code-block">' + buildHighlightedHTML(reqHeaders) + '</div>';
+  }
+  const reqBody = prettyBody(req.body || req.requestBody || '');
+  if (reqBody) {
+    reqHTML += '<div class="sec-label">Body</div>';
+    reqHTML += '<div class="code-block">' + wrapBodyLines(reqBody) + '</div>';
+  }
+  if (!reqHTML) reqHTML = '<div style="padding:18px;color:var(--muted);font-family:JetBrains Mono,monospace;font-size:.72rem">No request data</div>';
+  document.getElementById('preview-req-body').innerHTML = reqHTML;
+
+  // Response side
+  const sc = req.responseStatusCode || '';
+  const stxt = statusText(sc);
+  document.getElementById('preview-resp-status').textContent = sc;
+  document.getElementById('preview-resp-status').className = 'preview-status' +
+    (sc >= 200 && sc < 300 ? ' s2xx' : sc >= 300 && sc < 400 ? ' s3xx' : sc >= 400 ? ' s4xx' : '');
+  document.getElementById('preview-resp-status-text').textContent = stxt;
+
+  let respHTML = '';
+  const respHeaders = Array.isArray(req.responseHeaders) ? req.responseHeaders.join('\n') : (req.responseHeaders || '');
+  if (respHeaders) {
+    respHTML += '<div class="sec-label">Headers</div>';
+    respHTML += '<div class="code-block">' + buildHighlightedHTML(respHeaders) + '</div>';
+  }
+  const respBody = prettyBody(req.responseBody || '');
+  if (respBody) {
+    const ct = getContentType(req);
+    const ctLabel = ct ? ' <span style="color:var(--muted);font-size:.58rem;text-transform:uppercase;letter-spacing:.05em;margin-left:6px">' + esc(ct) + '</span>' : '';
+    respHTML += '<div class="sec-label">Body' + ctLabel + '</div>';
+    respHTML += '<div class="code-block">' + wrapBodyLines(respBody) + '</div>';
+  }
+  if (!respHTML) respHTML = '<div style="padding:18px;color:var(--muted);font-family:JetBrains Mono,monospace;font-size:.72rem">No response data</div>';
+  document.getElementById('preview-resp-body').innerHTML = respHTML;
+
+  // Show preview, hide playlist
+  document.getElementById('preview-pane').classList.add('active');
+}
+
+function closePreview() {
+  document.getElementById('preview-pane').classList.remove('active');
+  previewId = null;
+}
+
+function addPreviewToPlaylist() {
+  if (!previewId) return;
+  if (playlist.includes(previewId)) { showToast('Already in playlist'); return; }
+  playlist.push(previewId);
+  renderPlaylist();
+  document.getElementById('preview-add-btn').textContent = '\u2713 In Playlist';
+  showToast('Added to playlist', 'ok');
+}
+
+// ---- Bulk add ----
+function addAllSelected() {
+  let added = 0;
+  selectedIds.forEach(id => {
+    if (!playlist.includes(id)) { playlist.push(id); added++; }
+  });
+  selectedIds.clear();
+  document.querySelectorAll('.pick-row.selected').forEach(r => r.classList.remove('selected'));
+  const btn = document.getElementById('add-selected-btn');
+  if (btn) btn.style.display = 'none';
+  lastClickedIdx = -1;
+  if (added) { renderPlaylist(); showToast('Added ' + added + ' selected request' + (added !== 1 ? 's' : ''), 'ok'); }
+  else showToast('Selected items already in playlist');
+}
+function addAllStarred() {
+  let added = 0;
+  document.querySelectorAll('.pick-row').forEach(row => {
+    if (row.dataset.starred === 'true' && !playlist.includes(row.dataset.id)) {
+      playlist.push(row.dataset.id); added++;
+    }
+  });
+  if (added) { renderPlaylist(); showToast('Added ' + added + ' starred request' + (added !== 1 ? 's' : ''), 'ok'); }
+  else showToast('No new starred items to add');
+}
+function addAllVisible() {
+  let added = 0;
+  document.querySelectorAll('.pick-row:not(.hidden)').forEach(row => {
+    if (!playlist.includes(row.dataset.id)) { playlist.push(row.dataset.id); added++; }
+  });
+  if (added) { renderPlaylist(); showToast('Added ' + added + ' request' + (added !== 1 ? 's' : ''), 'ok'); }
+  else showToast('All visible items already in playlist');
+}
+
+// ---- Star ----
+function toggleStar(e, id) {
+  e.stopPropagation();
+  const row = document.querySelector(`.pick-row[data-id="${id}"]`);
+  const btn = row.querySelector('.star-btn');
+  fetch(`/api/session/${FILENAME}/request/${id}/flag`, { method: 'POST' })
+    .then(r => r.json()).then(() => {
+      const now = row.dataset.starred !== 'true';
+      row.dataset.starred = now ? 'true' : 'false';
+      row.classList.toggle('favorited', now);
+      btn.classList.toggle('starred', now);
+      reqMap[id].flagged = now;
+      updateChipCounts();
+      showToast(now ? 'Starred' : 'Unstarred', 'ok');
+    });
+}
+
+// ---- Playlist ----
+function addToPlaylist(id) {
+  if (playlist.includes(id)) { showToast('Already in playlist'); return; }
+  playlist.push(id);
+  renderPlaylist();
+  showToast('Added to playlist', 'ok');
+}
+function removeFromPlaylist(id) {
+  playlist = playlist.filter(i => i !== id);
+  renderPlaylist();
+}
+function clearPlaylist() { playlist = []; renderPlaylist(); }
+function renderPlaylist() {
+  const body = document.getElementById('playlist-body');
+  const empty = document.getElementById('pl-empty');
+  document.getElementById('pl-count').textContent = playlist.length + ' item' + (playlist.length !== 1 ? 's' : '');
+  document.getElementById('prog-label').textContent = '0 / ' + playlist.length;
+  document.getElementById('prog-fill').style.width = '0%';
+  body.querySelectorAll('.pl-item').forEach(el => el.remove());
+  if (playlist.length === 0) { empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+  playlist.forEach((id, i) => {
+    const req = reqMap[id];
+    if (!req) return;
+    const method = req.method || 'GET';
+    const host = req.host || '';
+    const path = (req.url || '').replace('https://'+host,'').replace('http://'+host,'') || req.url;
+    const div = document.createElement('div');
+    div.className = 'pl-item';
+    div.dataset.id = id;
+    div.draggable = true;
+    div.innerHTML =
+      '<span class="pl-num">'+(i+1)+'</span>' +
+      '<span class="drag-handle" title="Drag to reorder">&#8597;</span>' +
+      '<span class="method-badge '+methodCls(method)+'">'+method+'</span>' +
+      '<span class="pl-url"><span class="host">'+esc(host)+'</span>'+esc(path)+'</span>' +
+      (req.tool ? '<span style="font-family:\'JetBrains Mono\',monospace;font-size:.58rem;color:var(--muted);flex-shrink:0">'+esc(req.tool)+'</span>' : '') +
+      '<button class="pl-remove" onclick="removeFromPlaylist(\''+id+'\')">&#10005;</button>';
+    setupDrag(div);
+    body.appendChild(div);
+  });
+}
+
+// ---- Drag reorder ----
+let dragSrc = null;
+function setupDrag(el) {
+  el.addEventListener('dragstart', e => { dragSrc = el; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+  el.addEventListener('dragend', () => { el.classList.remove('dragging'); document.querySelectorAll('.pl-item').forEach(i => i.classList.remove('drag-over')); });
+  el.addEventListener('dragover', e => { e.preventDefault(); if (el !== dragSrc) el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    if (dragSrc && dragSrc !== el) {
+      const si = playlist.indexOf(dragSrc.dataset.id);
+      const di = playlist.indexOf(el.dataset.id);
+      if (si !== -1 && di !== -1) { playlist.splice(si, 1); playlist.splice(di, 0, dragSrc.dataset.id); renderPlaylist(); }
+    }
+  });
+}
+
+// ====== PLAYER ======
+
+function startPlayer() {
+  if (playlist.length === 0) { showToast('Add requests to the playlist first'); return; }
+  playerIndex = 0;
+  paused = false;
+  document.getElementById('player-overlay').classList.add('active');
+  document.getElementById('pause-btn').textContent = '\u258c\u258c Pause';
+  showRequestPhase(playerIndex);
+}
+
+function stopPlayer() {
+  clearTimeout(phaseTimer);
+  clearInterval(countdownTimer);
+  paused = false;
+  playerPhase = 'idle';
+  currentCallback = null;
+  setFlow('');
+  document.getElementById('player-overlay').classList.remove('active');
+}
+
+function togglePause() {
+  const btn = document.getElementById('pause-btn');
+  if (paused) {
+    paused = false;
+    btn.textContent = '\u258c\u258c Pause';
+    if (currentCallback) startCountdown(phaseRemaining, phaseTotal, currentCallback);
+  } else {
+    paused = true;
+    clearTimeout(phaseTimer);
+    clearInterval(countdownTimer);
+    btn.textContent = '\u25b6 Resume';
+  }
+}
+
+function skipItem() {
+  clearTimeout(phaseTimer);
+  clearInterval(countdownTimer);
+  if (playerPhase === 'request') {
+    showResponsePhase(playerIndex);
+  } else {
+    playerIndex++;
+    if (playerIndex < playlist.length) showRequestPhase(playerIndex);
+    else showDoneScreen();
+  }
+}
+
+// ---- Phase: REQUEST ----
+function showRequestPhase(idx) {
+  playerPhase = 'request';
+  const req = reqMap[playlist[idx]];
+  if (!req) { playerIndex++; if (playerIndex < playlist.length) showRequestPhase(playerIndex); else showDoneScreen(); return; }
+
+  const reqDuration = parseInt(document.getElementById('req-speed').value);
+  const total = playlist.length;
+
+  document.getElementById('player-counter').textContent = (idx+1) + ' / ' + total;
+  document.getElementById('stage-label').textContent = 'Sending request...';
+  document.getElementById('phase-label').textContent = 'REQUEST  ' + (req.method||'GET') + '  ' + (req.host||'');
+
+  // Restore pane layout if title card or done screen replaced it
+  restorePanes();
+
+  // Method badge
+  const method = req.method || 'GET';
+  const mBadge = document.getElementById('req-method-badge');
+  mBadge.textContent = method;
+  mBadge.className = 'pane-method method-badge ' + methodCls(method);
+  document.getElementById('req-url-display').textContent = req.url || '';
+
+  // Tool badge
+  const toolBadge = document.getElementById('req-tool-badge');
+  if (req.tool) { toolBadge.textContent = 'via ' + req.tool; toolBadge.style.display = ''; }
+  else toolBadge.style.display = 'none';
+
+  // Flow indicator: outgoing
+  setFlow('outgoing');
+
+  // Summary + severity + note, then headers, then body
+  const headers = Array.isArray(req.headers) ? req.headers.join('\n') : (req.headers || '');
+  document.getElementById('req-pane-body').innerHTML =
+    '<div class="summary-line">' + buildSummaryLine(req) + '</div>' +
+    (req.severity ? sevBadgeHTML(req.severity) + '<br style="margin-bottom:8px">' : '') +
+    (req.notes ? '<div class="note-box">&#9998; ' + esc(req.notes) + '</div>' : '') +
+    '<div class="sec-label">Headers</div>' +
+    '<div class="code-block" id="tw-req-headers"></div>' +
+    (req.body ? '<div class="sec-label">Body</div><div class="code-block">' + wrapBodyLines(prettyBody(req.body)) + '</div>' : '');
+
+  // Reset response pane
+  document.getElementById('resp-waiting').classList.remove('hidden');
+  document.getElementById('resp-pane-inner').classList.remove('visible');
+  document.getElementById('resp-pane-body').innerHTML = '';
+  document.getElementById('resp-status-badge').textContent = '';
+  document.getElementById('resp-status-text').textContent = '';
+
+  // Progress
+  const pct = (idx / total) * 100;
+  document.getElementById('player-prog-fill').style.width = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = idx + ' / ' + total;
+
+  typewriteHL('tw-req-headers', headers || '(no headers captured)', Math.min(reqDuration * 0.7, 2500));
+  startCountdown(reqDuration, reqDuration, () => showResponsePhase(idx));
+}
+
+// ---- Phase: RESPONSE ----
+function showResponsePhase(idx) {
+  playerPhase = 'response';
+  const req = reqMap[playlist[idx]];
+  if (!req) { nextRequest(idx); return; }
+
+  const respDuration = parseInt(document.getElementById('resp-speed').value);
+  document.getElementById('stage-label').textContent = 'Response received';
+  document.getElementById('phase-label').textContent = 'RESPONSE  ' + (req.responseStatusCode || '--');
+
+  document.getElementById('resp-waiting').classList.add('hidden');
+  document.getElementById('resp-pane-inner').classList.add('visible');
+
+  // Flow indicator: incoming
+  setFlow('incoming');
+
+  const status = req.responseStatusCode || 0;
+  const sBadge = document.getElementById('resp-status-badge');
+  sBadge.textContent = status > 0 ? status : '--';
+  sBadge.className = 'pane-status ' + statusCls(status);
+  document.getElementById('resp-status-text').textContent = statusText(status);
+
+  const rHeaders = Array.isArray(req.responseHeaders) ? req.responseHeaders.join('\n') : (req.responseHeaders || '');
+  const rBody = req.responseBody || '';
+  const rBodyPretty = prettyBody(rBody.substring(0, 8000));
+  const ct = getContentType(req);
+  document.getElementById('resp-pane-body').innerHTML =
+    '<div class="sec-label">Headers</div>' +
+    '<div class="code-block" id="tw-resp-headers"></div>' +
+    '<div class="sec-label">Body' + (ct ? ' <span class="ct-label">' + esc(ct) + '</span>' : '') + '</div>' +
+    '<div class="code-block">' + wrapBodyLines(rBodyPretty) + (rBody.length > 8000 ? '\n<span class="code-line">[truncated]</span>' : '') + '</div>';
+
+  typewriteHL('tw-resp-headers', rHeaders || '(no headers captured)', Math.min(respDuration * 0.6, 2000));
+  startCountdown(respDuration, respDuration, () => nextRequest(idx));
+}
+
+// ---- Between requests: silent pause ----
+function nextRequest(idx) {
+  const next = idx + 1;
+  const total = playlist.length;
+  document.getElementById('player-prog-fill').style.width = (next / total * 100) + '%';
+  document.getElementById('prog-fill').style.width = (next / total * 100) + '%';
+  document.getElementById('prog-label').textContent = next + ' / ' + total;
+  playerIndex = next;
+
+  if (next < total) {
+    playerPhase = 'pause';
+    setFlow('');
+    const pauseMs = parseInt(document.getElementById('pause-speed').value);
+    document.getElementById('stage-label').textContent = 'Pausing...';
+    document.getElementById('phase-label').textContent = 'Next up in ' + (pauseMs/1000).toFixed(0) + 's';
+    startCountdown(pauseMs, pauseMs, () => showRequestPhase(next));
+  } else {
+    showDoneScreen();
+  }
+}
+
+function showDoneScreen() {
+  clearInterval(countdownTimer);
+  playerPhase = 'idle';
+  setFlow('');
+  document.getElementById('stage-label').textContent = 'Complete';
+  document.getElementById('phase-label').textContent = 'Playback complete';
+  document.getElementById('player-prog-fill').style.width = '100%';
+  document.getElementById('player-timer').textContent = '';
+  document.getElementById('player-counter').textContent = 'Done';
+  document.getElementById('http-split').innerHTML =
+    '<div class="done-screen">' +
+    '<div class="done-icon">&#9989;</div>' +
+    '<div class="done-title">Playback Complete</div>' +
+    '<div class="done-sub">'+playlist.length+' request'+(playlist.length!==1?'s':'')+' reviewed</div>' +
+    '<button class="hbtn green-btn" onclick="startPlayer()" style="margin-top:14px">&#9654; Replay</button>' +
+    '<button class="hbtn primary" onclick="stopPlayer()" style="margin-top:8px">Done</button>' +
+    '</div>';
+}
+
+// Rebuild req/resp panes after title card or done screen replaced http-split content
+function restorePanes() {
+  const split = document.getElementById('http-split');
+  if (split.querySelector('#req-pane')) return;
+  split.innerHTML =
+    '<div class="req-pane" id="req-pane">' +
+      '<div class="pane-header">' +
+        '<span class="pane-label req-label">REQUEST</span>' +
+        '<span class="pane-method" id="req-method-badge">GET</span>' +
+        '<span class="pane-url" id="req-url-display"></span>' +
+        '<span class="tool-badge" id="req-tool-badge" style="display:none"></span>' +
+      '</div>' +
+      '<div class="pane-body" id="req-pane-body"></div>' +
+    '</div>' +
+    '<div class="resp-pane" id="resp-pane">' +
+      '<div class="resp-waiting" id="resp-waiting"><div class="wait-spinner"></div><div>Awaiting response...</div></div>' +
+      '<div class="resp-pane-inner" id="resp-pane-inner">' +
+        '<div class="pane-header">' +
+          '<span class="pane-label resp-label">RESPONSE</span>' +
+          '<span class="pane-status" id="resp-status-badge"></span>' +
+          '<span class="status-text" id="resp-status-text"></span>' +
+        '</div>' +
+        '<div class="pane-body" id="resp-pane-body"></div>' +
+      '</div>' +
+    '<div class="flow-indicator" id="flow-indicator">' +
+      '<div class="flow-line"></div>' +
+      '<div class="flow-pulse"></div>' +
+      '<div class="flow-dot"></div>' +
+    '</div>' +
+    '</div>';
+}
+
+// ---- Countdown ----
+function startCountdown(durationMs, totalMs, onComplete, onTick) {
+  phaseRemaining = durationMs;
+  phaseTotal = totalMs;
+  currentCallback = onComplete;
+  clearTimeout(phaseTimer);
+  clearInterval(countdownTimer);
+  const tick = 200;
+  countdownTimer = setInterval(() => {
+    if (!paused) {
+      phaseRemaining -= tick;
+      const secs = Math.max(0, phaseRemaining / 1000).toFixed(1);
+      document.getElementById('player-timer').textContent = secs + 's';
+      if (onTick) onTick(phaseRemaining);
+    }
+  }, tick);
+  phaseTimer = setTimeout(() => {
+    clearInterval(countdownTimer);
+    if (!paused) onComplete();
+  }, durationMs);
+}
+
+// ---- Summary line ----
+function buildSummaryLine(req) {
+  const method = req.method || 'GET';
+  const host = req.host || 'unknown host';
+  const path = (req.url || '').replace('https://'+host,'').replace('http://'+host,'') || '/';
+  const pathHint = path.length > 60 ? path.substring(0, 57) + '...' : path;
+  let line = '<strong>' + esc(method) + '</strong> ' + esc(pathHint) + ' to <strong>' + esc(host) + '</strong>';
+  if (req.responseStatusCode) {
+    const st = req.responseStatusCode;
+    const txt = statusText(st);
+    line += ' — server returned <strong>' + st + (txt ? ' ' + txt.replace('— ','') : '') + '</strong>';
+  }
+  return line;
+}
+
+// ---- Content-type from response headers ----
+function getContentType(req) {
+  const hdrs = Array.isArray(req.responseHeaders) ? req.responseHeaders : [];
+  for (const h of hdrs) {
+    if (h.toLowerCase().startsWith('content-type:')) return h.substring(13).trim();
+  }
+  return '';
+}
+
+// ---- Severity badge HTML ----
+function sevBadgeHTML(severity) {
+  if (!severity) return '';
+  return '<span class="sev-badge sev-' + esc(severity) + '">' + esc(severity) + '</span>';
+}
+
+// ---- Flow indicator ----
+function setFlow(dir) {
+  const fi = document.getElementById('flow-indicator');
+  if (!fi) return;
+  fi.className = 'flow-indicator' + (dir ? ' flow-' + dir : '');
+}
+
+// ---- Pretty print bodies ----
+function prettyBody(text) {
+  if (!text) return text;
+  const t = text.trim();
+  // JSON
+  if (t.startsWith('{') || t.startsWith('[')) {
+    try { return JSON.stringify(JSON.parse(t), null, 2); } catch (_) {}
+  }
+  // XML / HTML — basic indent
+  if (t.startsWith('<')) {
+    try {
+      const doc = new DOMParser().parseFromString(t, 'text/xml');
+      const err = doc.querySelector('parsererror');
+      if (!err) return new XMLSerializer().serializeToString(doc)
+        .replace(/></g, '>\n<')
+        .split('\n')
+        .reduce((acc, line, i, arr) => {
+          const prev = arr[i - 1] || '';
+          const closing = line.startsWith('</');
+          const selfClose = prev.endsWith('/>') || prev.startsWith('</');
+          const depth = acc.depth + (selfClose || closing ? 0 : (prev.startsWith('<') && !prev.startsWith('</') ? 1 : 0)) - (closing ? 1 : 0);
+          acc.depth = Math.max(0, depth);
+          acc.lines.push('  '.repeat(acc.depth) + line.trim());
+          return acc;
+        }, { depth: 0, lines: [] }).lines.join('\n');
+    } catch (_) {}
+  }
+  // URL-encoded form data
+  if (t.includes('=') && !t.includes('\n')) {
+    try {
+      return t.split('&').map(pair => {
+        const [k, v] = pair.split('=');
+        return decodeURIComponent(k || '') + ' = ' + decodeURIComponent(v || '');
+      }).join('\n');
+    } catch (_) {}
+  }
+  return text;
+}
+
+// ---- Typewriter with security header highlighting ----
+const SECURITY_HEADERS = new Set([
+  'authorization','cookie','set-cookie','x-forwarded-for','x-real-ip',
+  'x-api-key','x-auth-token','x-csrf-token','www-authenticate',
+  'proxy-authorization','access-control-allow-origin','content-security-policy',
+  'strict-transport-security','x-frame-options','x-xss-protection'
+]);
+
+function buildHighlightedHTML(text) {
+  return text.split('\n').map(line => {
+    const colon = line.indexOf(':');
+    let inner;
+    if (colon > 0 && SECURITY_HEADERS.has(line.substring(0, colon).trim().toLowerCase())) {
+      inner = '<span class="hl-header">' + esc(line.substring(0, colon+1)) + '</span>' + esc(line.substring(colon+1));
+    } else {
+      inner = esc(line);
+    }
+    return '<span class="code-line" onclick="toggleLineMark(this)">' + inner + '</span>';
+  }).join('\n');
+}
+
+function wrapBodyLines(text) {
+  if (!text) return '';
+  return text.split('\n').map(line =>
+    '<span class="code-line" onclick="toggleLineMark(this)">' + esc(line) + '</span>'
+  ).join('\n');
+}
+
+function toggleLineMark(el) {
+  el.classList.toggle('marked');
+  // Auto-pause playback when marking lines so user has time to annotate
+  const overlayActive = document.getElementById('player-overlay').classList.contains('active');
+  if (overlayActive && !paused) togglePause();
+}
+
+function typewriteHL(elId, text, duration) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '';
+  const chars = text.split('');
+  const delay = Math.max(1, duration / chars.length);
+  const cur = document.createElement('span');
+  cur.className = 'cursor';
+  el.appendChild(cur);
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i < chars.length) {
+      el.insertBefore(document.createTextNode(chars[i]), cur);
+      i++;
+    } else {
+      clearInterval(iv);
+      cur.remove();
+      // Swap to highlighted version once typing finishes
+      el.innerHTML = buildHighlightedHTML(text);
+    }
+  }, delay);
+}
+
+// ---- Helpers ----
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function methodCls(m) { return ['GET','POST','PUT','DELETE','PATCH'].includes(m) ? m : 'OTHER'; }
+function statusCls(s) {
+  if (s >= 200 && s < 300) return 's2xx';
+  if (s >= 300 && s < 400) return 's3xx';
+  if (s >= 400) return 's4xx';
+  return '';
+}
+function statusText(s) {
+  const map = {
+    200:'OK', 201:'Created', 204:'No Content', 206:'Partial Content',
+    301:'Moved Permanently', 302:'Found', 304:'Not Modified',
+    400:'Bad Request', 401:'Unauthorized', 403:'Forbidden', 404:'Not Found',
+    405:'Method Not Allowed', 408:'Request Timeout', 409:'Conflict',
+    410:'Gone', 413:'Payload Too Large', 422:'Unprocessable Entity',
+    429:'Too Many Requests', 500:'Internal Server Error', 502:'Bad Gateway',
+    503:'Service Unavailable', 504:'Gateway Timeout'
+  };
+  return map[s] ? '— ' + map[s] : '';
+}
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ---- Keyboard shortcuts ----
+document.addEventListener('keydown', e => {
+  const overlayActive = document.getElementById('player-overlay').classList.contains('active');
+  if (!overlayActive) {
+    if (e.key === '/' && document.activeElement !== document.getElementById('pick-search')) {
+      e.preventDefault();
+      document.getElementById('pick-search').focus();
+    }
+    return;
+  }
+  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); togglePause(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); skipItem(); }
+  if (e.key === 'Escape') { e.preventDefault(); stopPlayer(); }
+});
+
+// ---- Microphone toggle ----
+let micEnabled = false;
+let micStream = null;
+
+function toggleMic() {
+  const btn = document.getElementById('mic-btn');
+  if (micEnabled) {
+    micEnabled = false;
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    btn.classList.remove('mic-on');
+    btn.textContent = '\uD83C\uDFA4 Mic Off';
+    showToast('Microphone disabled', 'ok');
+  } else {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      micStream = stream;
+      micEnabled = true;
+      btn.classList.add('mic-on');
+      btn.textContent = '\uD83C\uDFA4 Mic On';
+      showToast('Microphone enabled — your narration will be included in recordings', 'ok');
+    }).catch(err => {
+      showToast('Microphone access denied');
+      console.error('Mic error:', err);
+    });
+  }
+}
+
+// ---- Screen recording ----
+let mediaRecorder = null;
+let recordedChunks = [];
+let recording = false;
+let audioCtx = null;
+
+function toggleRecord() {
+  const btn = document.getElementById('rec-btn');
+  if (recording) {
+    mediaRecorder.stop();
+    recording = false;
+    btn.classList.remove('recording');
+    btn.textContent = '\u231a Record';
+    showToast('Processing video...', 'ok');
+  } else {
+    startRecording();
+  }
+}
+
+async function startRecording() {
+  const btn = document.getElementById('rec-btn');
+  try {
+    const displayStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { mediaSource: 'tab', frameRate: 30 },
+      audio: false,
+      preferCurrentTab: true
+    });
+
+    const httpSplit = document.getElementById('http-split');
+    if (typeof CropTarget !== 'undefined' && CropTarget.fromElement) {
+      try {
+        const cropTarget = await CropTarget.fromElement(httpSplit);
+        const [videoTrack] = displayStream.getVideoTracks();
+        await videoTrack.cropTo(cropTarget);
+      } catch (cropErr) {
+        console.warn('Element crop not available, recording full tab:', cropErr);
+      }
+    }
+
+    // Build the final stream: video + optional mic audio
+    let finalStream;
+    if (micEnabled && micStream && micStream.getAudioTracks().length > 0) {
+      audioCtx = new AudioContext();
+      const micSource = audioCtx.createMediaStreamSource(micStream);
+      const dest = audioCtx.createMediaStreamDestination();
+      micSource.connect(dest);
+      finalStream = new MediaStream([
+        ...displayStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks()
+      ]);
+    } else {
+      finalStream = displayStream;
+    }
+
+    const mimeTypes = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
+    const mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(finalStream, { mimeType, videoBitsPerSecond: 4000000 });
+    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      displayStream.getTracks().forEach(t => t.stop());
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
+      const blob = new Blob(recordedChunks, { type: mimeType });
+      const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const engagement = {{ summary.get('engagement','session') | tojson }};
+      const filename = engagement.replace(/[^a-zA-Z0-9]/g, '_') + '_patronus.' + ext;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      showToast('Saved: ' + filename + ' (' + (blob.size/1024/1024).toFixed(1) + ' MB)', 'ok');
+    };
+    mediaRecorder.start(1000);
+    recording = true;
+    btn.classList.add('recording');
+    btn.innerHTML = '\u231a Stop & Save';
+    const micNote = micEnabled ? ' (with mic narration)' : '';
+    showToast('Recording started' + micNote + ' — play your playlist now', 'ok');
+  } catch (err) {
+    if (err.name === 'NotAllowedError') showToast('Screen capture permission denied');
+    else showToast('Recording failed: ' + err.message);
+    console.error('Recording error:', err);
+  }
+}
+
+// Pre-populate starred items on load
+window.addEventListener('DOMContentLoaded', () => {
+  REQUESTS.filter(r => r.flagged).forEach(r => { if (!playlist.includes(r.id)) playlist.push(r.id); });
+  if (playlist.length > 0) renderPlaylist();
+  updateChipCounts();
+});
+</script>
+</body>
+</html>
